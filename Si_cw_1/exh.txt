@@ -1,0 +1,289 @@
+using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace Regu³y__decyzyjne
+{
+    public class Exhaustiv
+    {
+        Obiekt[] daneZPliku = null;
+        List<Regula> reguly = new List<Regula>();
+        List<List<int>> kombinacjeWykluczone = new List<List<int>>();
+        List<int> indeksyPotencjalnieWykluczone = new List<int>();
+        List<List<List<int>>> macierzNieodroznialnosci = new List<List<List<int>>>();
+        List<List<int>> deskryptoryWykluczone = new List<List<int>>();
+        List<List<int>> deskryptoryDoPrzeszukania = new List<List<int>>();
+        public Exhaustiv(Obiekt[] DaneZPliku)
+        {
+            this.daneZPliku = DaneZPliku;
+        }
+        public void szukajRegul()
+        {
+            for (int i = 1; i < daneZPliku[0].deskryptory.Length + 1; i++)
+            {
+                //List<List<int>> kombinacje = znajdzKombinacje(i);
+                List<List<int>> kombinacje = new List<List<int>>();
+                kombinacje.Clear();
+                var x = Combinations(i, daneZPliku[0].deskryptory.Length);
+                utworzMacierzNieodroznialnosci();
+                poprawneDeskryptory();
+                foreach (var item in x)
+                {
+                    kombinacje.Add(item.ToList());
+                }
+
+                szukajReguly(kombinacje);
+            }
+        }
+        public void szukajReguly(List<List<int>> kombinacje)
+        {
+            for (int x = 0; x < deskryptoryWykluczone.Count; x++)
+            {
+                deskryptoryWykluczone[x].Clear();
+            }
+            for (int i = 0; i < daneZPliku.Length; i++)
+            {
+                for (int j = 0; j < daneZPliku.Length; j++)
+                {
+                    if (daneZPliku[i].klasa == daneZPliku[j].klasa)
+                    {
+                        for (int k = 0; k < kombinacje.Count; k++)
+                        {
+                            if (czyDobraKombinacja(i, kombinacje[k]))
+                            {
+                                int supportReguly = 0;
+                                int poprawnoscReguly = 0;
+                                for (int l = 0; l < kombinacje[k].Count; l++)
+                                {
+                                    if (l == 0)
+                                    {
+                                        poprawnoscReguly = 0;
+                                    }
+                                    if (daneZPliku[j].deskryptory[kombinacje[k][l]] == daneZPliku[i].deskryptory[kombinacje[k][l]])
+                                    {
+                                        poprawnoscReguly += 1;
+                                    }
+                                    if (poprawnoscReguly % kombinacje[k].Count == 0 && poprawnoscReguly == kombinacje[k].Count)
+                                    {
+                                        supportReguly += 1;
+                                        poprawnoscReguly = 0;
+                                    }
+
+                                }
+                                if (supportReguly != 0)
+                                {
+                                    List<int> wartosciTstReg = new List<int>();
+                                    for (int m = 0; m < kombinacje[k].Count; m++)
+                                    {
+                                        wartosciTstReg.Add(daneZPliku[i].deskryptory[kombinacje[k][m]].wartosc);
+                                        deskryptoryWykluczone[i].Add(kombinacje[k][m]);
+                                        //macierzWykluczonosci(i, kombinacje[k][m]);
+                                        kombinacjeWykluczone.Add(kombinacje[k]);
+
+                                    }
+                                    reguly.Add(new Regula(kombinacje[k], daneZPliku[i].klasa, supportReguly, wartosciTstReg));
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        public void szukajReguly1(List<List<int>> kombinacje)
+        {
+            for (int i = 0; i < kombinacje.Count; i++)
+            {
+                for (int j = 0; j < daneZPliku.Length; j++)
+                {
+                    int supportReguly = 0;
+                    int zgodnoscReguly = 0;
+                    List<int> indeksyreguly = new List<int>();
+                    if (czyDobraKombinacja(j,kombinacje[i]))
+                    {
+                        for (int k = 0; k < daneZPliku.Length; k++)
+                        {
+                            for (int l = 0; l < kombinacje[i].Count; l++)
+                            {
+                                if (l==0)
+                                {
+                                    supportReguly = 0;
+                                }
+                                if (daneZPliku[j].deskryptory[kombinacje[i][l]].wartosc==daneZPliku[k].deskryptory[kombinacje[i][l]].wartosc)
+                                {
+                                    zgodnoscReguly += 1;
+                                }
+                                if (zgodnoscReguly%kombinacje[i].Count==0&&zgodnoscReguly!=0)
+                                {
+                                    supportReguly += 1;
+                                    indeksyreguly.Add(k);
+                                    zgodnoscReguly = 0;
+                                }
+                            }
+                        }
+                    }
+                    if (supportReguly>0)
+                    {
+                        List<int> wartosciTstReg = new List<int>();
+                        for (int m = 0; m < kombinacje[i].Count; m++)
+                        {
+                                        wartosciTstReg.Add(daneZPliku[j].deskryptory[kombinacje[i][m]].wartosc);
+                                        //deskryptoryWykluczone[j].Add(kombinacje[i][m]);
+                                        for (int o = 0; o < indeksyreguly.Count; o++)
+                                        {
+                                            wykluczDeskryptory(indeksyreguly[o], kombinacje[i][m]);
+                                        }
+
+                                        //macierzWykluczonosci(i, kombinacje[k][m]);
+                                        //kombinacjeWykluczone.Add(kombinacje[i]);
+                                        reguly.Add(new Regula(kombinacje[i], daneZPliku[j].klasa, supportReguly, wartosciTstReg));
+                        }                        
+                    }
+                }
+            }
+        }
+
+        private void wykluczDeskryptory(int j, int skladowaKombinacji)
+        {
+            //if (!deskryptoryWykluczone[j].Contains(skladowaKombinacji))
+            //{
+            //    deskryptoryWykluczone[j].Add(skladowaKombinacji);
+            //}
+            if (!deskryptoryDoPrzeszukania[j].Contains(skladowaKombinacji))
+            {
+                deskryptoryDoPrzeszukania[j].Add(skladowaKombinacji);
+            }
+        }
+        public void macierzWykluczonosci(int index, int deskryptor)
+        {
+            for (int i = 0; i < daneZPliku.Count(); i++)
+            {
+                macierzNieodroznialnosci[index][i].Add(deskryptor);
+            }
+        }
+        public bool czyDobraKombinacja(int index,List<int> kombinacja)
+        {
+            for (int i = 0; i < kombinacja.Count; i++)
+            {
+                if (!deskryptoryDoPrzeszukania[index].Contains(kombinacja[i])||deskryptoryWykluczone[index].Contains(kombinacja[i]))
+                {
+                    return false;
+                    
+                }
+            }
+            return true;
+        }
+        public void poprawneDeskryptory()
+        {
+            for (int i = 0; i < daneZPliku.Length; i++)
+            {
+                List<int> listaTestowa = new List<int> { 0, 1, 2, 3, 4, 5 };
+                for (int j = 0; j < daneZPliku.Length; j++)
+                {
+
+                    for (int l = 0; l < listaTestowa.Count; l++)
+                    {
+                        if (macierzNieodroznialnosci[i][j].Contains(listaTestowa[l]))
+                        {
+                            listaTestowa.Remove(listaTestowa[l]);
+                        }
+                    }
+                }
+                deskryptoryDoPrzeszukania.Add(listaTestowa);
+            }
+        }
+        public void utworzMacierzNieodroznialnosci()
+        {
+            
+            for (int i = 0; i < daneZPliku.Length; i++)
+            {
+                deskryptoryWykluczone.Add(new List<int>());
+                macierzNieodroznialnosci.Add(new List<List<int>>());
+                int klasaI=daneZPliku[i].klasa;
+                for (int j = 0; j < daneZPliku.Length; j++)
+                {
+                    macierzNieodroznialnosci[i].Add(new List<int>());
+                    int klasaJ= daneZPliku[j].klasa;
+                    if (klasaI!=klasaJ)
+                    {
+                        List<int> tmpList= new List<int>();
+                        tmpList.Clear();
+                        for (int k = 0; k < daneZPliku[i].deskryptory.Length; k++)
+                        {
+                            if (daneZPliku[i].deskryptory[k].wartosc==daneZPliku[j].deskryptory[k].wartosc)
+                            {
+                               
+                                macierzNieodroznialnosci[i][j].Add(k);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        public static IEnumerable<int[]> Combinations(int m, int n)
+        {
+            int[] result = new int[m];
+            Stack<int> stack = new Stack<int>();
+            stack.Push(0);
+
+            while (stack.Count > 0)
+            {
+                int index = stack.Count - 1;
+                int value = stack.Pop();
+
+                while (value < n)
+                {
+                    result[index++] = value++;
+                    stack.Push(value);
+                    if (index == m)
+                    {
+                        yield return result;
+                        break;
+                    }
+                }
+            }
+        }
+        public void wypiszRegu³y()
+        {
+            string path = string.Concat(Environment.CurrentDirectory, @"\cover.txt");
+            File.WriteAllText(path, String.Empty);
+            System.IO.StreamWriter file = new System.IO.StreamWriter(path, true);
+            string linia = "";
+            int nrReguly = 0;
+            if (reguly.Count != 0)
+            {
+                for (int i = 0; i < reguly.Count; i++)
+                {
+                    linia = "";
+                    nrReguly += 1;
+                    for (int j = 0; j < reguly[i].indeksyReguly.Count; j++)
+                    {
+                        linia += "(a" + (reguly[i].indeksyReguly[j] + 1) + "= " + reguly[i].wartosciReguly[j] + ")";
+                        if (reguly[i].indeksyReguly.Count > 1 && j < reguly[i].indeksyReguly.Count - 1)
+                        {
+                            linia += "^";
+                        }
+                        else
+                        {
+                            linia += " ";
+                        }
+                    }
+                    linia += "=> (d = " + reguly[i].klasaReguly + ")[" + reguly[i].supportReguly + "]";
+                    file.WriteLine(linia);
+                }
+            }
+
+            //file.WriteLine("0 \t "+poprawne0+" \t "+niepoprawne0+" \t "+klasa0+" \t "+acc0+ " \t "+ cov0);
+
+            // Write the string to a file.
+
+
+
+            file.Close();
+            Process.Start("notepad.exe", path);
+        }
+    }
+}

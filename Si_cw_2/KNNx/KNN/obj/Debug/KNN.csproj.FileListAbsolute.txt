@@ -1,0 +1,9 @@
+C:\Users\AMELKA\Desktop\Si_cw_2\KNN\KNN\obj\Debug\KNN.Form1.resources
+C:\Users\AMELKA\Desktop\Si_cw_2\KNN\KNN\obj\Debug\KNN.Properties.Resources.resources
+C:\Users\AMELKA\Desktop\Si_cw_2\KNN\KNN\obj\Debug\KNN.csproj.GenerateResource.Cache
+C:\Users\AMELKA\Desktop\Si_cw_2\KNN\KNN\bin\Debug\KNN.exe.config
+C:\Users\AMELKA\Desktop\Si_cw_2\KNN\KNN\bin\Debug\KNN.exe
+C:\Users\AMELKA\Desktop\Si_cw_2\KNN\KNN\bin\Debug\KNN.pdb
+C:\Users\AMELKA\Desktop\Si_cw_2\KNN\KNN\obj\Debug\KNN.exe
+C:\Users\AMELKA\Desktop\Si_cw_2\KNN\KNN\obj\Debug\KNN.pdb
+C:\Users\AMELKA\Desktop\Si_cw_2\KNN\KNN\obj\Debug\KNN.csprojResolveAssemblyReference.cache
